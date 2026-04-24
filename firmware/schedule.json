@@ -1,0 +1,22 @@
+{
+  "device_id": "device-001",
+  "timezone": "Africa/Cairo",
+  "schedules": [
+    {
+      "id": "sched_morning",
+      "drawer": 1,
+      "label": "Morning Dose",
+      "time": "08:00",
+      "days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+      "enabled": true
+    },
+    {
+      "id": "sched_evening",
+      "drawer": 2,
+      "label": "Evening Dose",
+      "time": "20:00",
+      "days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+      "enabled": true
+    }
+  ]
+}
