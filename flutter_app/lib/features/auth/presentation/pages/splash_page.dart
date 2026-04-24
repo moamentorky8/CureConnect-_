@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-
-import '../../../../core/widgets/cure_connect_logo.dart';
-import '../../../../core/widgets/hexagon_background.dart';
-
+import 'package:cureconnect/core/widgets/cure_connect_logo.dart';
+import 'package:cureconnect/core/widgets/hexagon_background.dart';
 class SplashPage extends StatelessWidget {
   const SplashPage({super.key});
 
