@@ -23,7 +23,7 @@ class AppTheme {
       textTheme: textTheme,
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.card.withValues(alpha: 0.65),
+        fillColor: AppColors.card.withOpacity(0.65),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(24),
           borderSide: const BorderSide(color: AppColors.cardBorder),
