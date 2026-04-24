@@ -1,11 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
+import 'package:cureconnect/features/schedules/domain/entities/med_schedule.dart';
 import '../../../../core/widgets/glass_card.dart';
 import '../../../../core/widgets/hexagon_background.dart';
 import '../../../shared/data/cureconnect_repository.dart';
-import '../../domain/entities/med_schedule.dart';
+
 
 class SchedulesPage extends ConsumerWidget {
   const SchedulesPage({super.key});
