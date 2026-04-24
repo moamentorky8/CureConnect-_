@@ -1,53 +1,65 @@
-name: Build CureConnect APK
+name: Build Release APK
 
 on:
+  workflow_dispatch:
   push:
-    branches: [ "main", "work" ]
-  pull_request:
-    branches: [ "main" ]
+    branches:
+      - main
+    paths:
+      - "flutter_app/**"
+      - ".github/workflows/build-release-apk.yml"
 
 jobs:
-  build:
+  build-release-apk:
     runs-on: ubuntu-latest
-    steps:
-      # 1. سحب الكود بأحدث إصدار (v4)
-      - uses: actions/checkout@v4
 
-      # 2. إعداد جافا بإصدار حديث ومستقر
-      - name: Set up Java
+    defaults:
+      run:
+        working-directory: flutter_app
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
-          distribution: 'temurin'
+          distribution: temurin
+          java-version: "17"
 
-      # 3. إعداد فلاتر
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.x'
-          channel: 'stable'
+          flutter-version: "3.24.5"
+          channel: stable
+          cache: true
 
-      # 4. حقن ملف Firebase من الـ Secrets
-      - name: Decode Firebase Config
+      - name: Get Flutter dependencies
+        run: flutter pub get
+
+      - name: Sync Android support files
+        run: flutter create . --platforms=android
+
+      - name: Decode Android keystore
         run: |
-          mkdir -p flutter_app/android/app
-          echo "${{ secrets.GOOGLE_SERVICES_JSON }}" > flutter_app/android/app/google-services.json
+          mkdir -p android/app
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/cureconnect-release.jks
 
-      # 5. تثبيت المكتبات
-      - name: Install dependencies
+      - name: Write signing properties
         run: |
-          cd flutter_app
-          flutter pub get
+          cat > android/key.properties <<EOF
+          storePassword=${{ secrets.ANDROID_STORE_PASSWORD }}
+          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
+          storeFile=cureconnect-release.jks
+          EOF
 
-      # 6. بناء الـ APK
-      - name: Build APK
-        run: |
-          cd flutter_app
-          flutter build apk --release
+      - name: Build release APK
+        run: flutter build apk --release
 
-      # 7. رفع الـ APK باستخدام v4 (عشان نتجنب الخطأ اللي ظهرلك)
-      - name: Upload APK
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: CureConnect-Release
+          name: cureconnect-release-apk
           path: flutter_app/build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
