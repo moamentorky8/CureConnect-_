@@ -1,8 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-import '../../../logs/presentation/pages/logs_page.dart';
-import '../../../schedules/presentation/pages/schedules_page.dart';
+import 'package:cureconnect/features/logs/presentation/pages/logs_page.dart';
+import 'package:cureconnect/features/schedules/presentation/pages/schedules_page.dart';
 import 'dashboard_page.dart';
 
 class HomeShellPage extends StatefulWidget {
