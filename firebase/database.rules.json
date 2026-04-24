@@ -1,0 +1,20 @@
+{
+  "rules": {
+    "deviceState": {
+      "$deviceId": {
+        ".read": "auth != null && root.child('deviceOwners').child($deviceId).val() === auth.uid",
+        ".write": "auth != null && root.child('deviceOwners').child($deviceId).val() === auth.uid"
+      }
+    },
+    "commands": {
+      "$deviceId": {
+        ".read": "auth != null && root.child('deviceOwners').child($deviceId).val() === auth.uid",
+        ".write": "auth != null && root.child('deviceOwners').child($deviceId).val() === auth.uid"
+      }
+    },
+    "deviceOwners": {
+      ".read": false,
+      ".write": false
+    }
+  }
+}
