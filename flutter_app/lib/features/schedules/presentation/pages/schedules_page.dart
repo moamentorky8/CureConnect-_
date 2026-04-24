@@ -110,7 +110,7 @@ class SchedulesPage extends ConsumerWidget {
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           FilledButton(
             onPressed: () async {
-              final item = MedSchedule(
+             final item = MedSchedule.create(
                 id: schedule?.id ?? FirebaseFirestore.instance.collection('_').doc().id,
                 drawer: int.tryParse(drawerController.text) ?? 1,
                 label: labelController.text.trim(),
