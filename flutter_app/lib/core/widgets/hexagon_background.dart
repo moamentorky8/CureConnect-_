@@ -50,7 +50,7 @@ class _GlowOrb extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         gradient: RadialGradient(
-      colors: [color.withOpacity(0.35), Colors.transparent],
+          colors: [color.withOpacity(0.35), Colors.transparent],
         ),
       ),
     );
@@ -102,9 +102,10 @@ class _HexPainter extends CustomPainter {
     }
 
     canvas.drawPath(polygon(1.0), paint..color = AppColors.logoCyan);
-    canvas.drawPath(polygon(1.18), paint..color = AppColors.logoMint.withValues(alpha: 0.3));
+    canvas.drawPath(polygon(1.18), paint..color = AppColors.logoMint.withOpacity(0.3));
   }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
+
