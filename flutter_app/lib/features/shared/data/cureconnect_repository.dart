@@ -20,7 +20,9 @@ final repositoryProvider = Provider<CureConnectRepository>((ref) {
     auth: FirebaseAuth.instance,
     firestore: FirebaseFirestore.instance,
     rtdb: FirebaseDatabase.instance,
-    googleSignIn: GoogleSignIn.instance,
+    googleSignIn: GoogleSignIn(
+      scopes: const ['email', 'profile'],
+    ),
     audioPlayer: AudioPlayer(),
     httpClient: http.Client(),
   );
@@ -95,10 +97,14 @@ class CureConnectRepository {
   }
 
   Future<void> signInWithGoogle() async {
-    await _googleSignIn.initialize();
-    final account = await _googleSignIn.authenticate();
-    final authData = account.authentication;
+    final account = await _googleSignIn.signIn();
+    if (account == null) {
+      throw StateError('Google sign-in was cancelled.');
+    }
+
+    final authData = await account.authentication;
     final credential = GoogleAuthProvider.credential(
+      accessToken: authData.accessToken,
       idToken: authData.idToken,
     );
 
