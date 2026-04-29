@@ -37,6 +37,16 @@ class AppTheme {
           borderSide: const BorderSide(color: AppColors.logoCyan, width: 1.5),
         ),
       ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: AppColors.medicalBlue,
+          foregroundColor: AppColors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+        ),
+      ),
     );
   }
 }
