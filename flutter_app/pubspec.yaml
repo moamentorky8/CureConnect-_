@@ -1,7 +1,7 @@
 name: cureconnect
 description: CureConnect smart organizer mobile app.
 publish_to: "none"
-version: 1.0.0+1
+version: 1.1.0+2
 
 environment:
   sdk: ">=3.4.0 <4.0.0"
@@ -16,6 +16,9 @@ dependencies:
   firebase_database: ^11.3.5
   flutter_riverpod: ^2.5.1
   google_fonts: ^6.2.1
+  google_sign_in: ^6.2.2
+  http: ^1.2.2
+  audioplayers: ^6.1.0
   intl: ^0.20.2
 
 dev_dependencies:
