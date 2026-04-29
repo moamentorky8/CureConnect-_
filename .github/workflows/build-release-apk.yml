@@ -3,11 +3,9 @@ name: Build Release APK
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
-    paths:
-      - "flutter_app/**"
-      - ".github/workflows/build-release-apk.yml"
+
+permissions:
+  contents: write
 
 jobs:
   build-release-apk:
@@ -40,6 +38,33 @@ jobs:
       - name: Sync Android support files
         run: flutter create . --platforms=android
 
+      - name: Write google-services.json
+        run: |
+          mkdir -p android/app
+          echo "${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}" | base64 --decode > android/app/google-services.json
+
+      - name: Patch Gradle for Google services
+        run: |
+          if [ -f android/build.gradle ]; then
+            grep -q 'com.google.gms:google-services' android/build.gradle || \
+            sed -i '/dependencies {/a\        classpath "com.google.gms:google-services:4.4.2"' android/build.gradle
+          fi
+
+          if [ -f android/app/build.gradle ]; then
+            grep -q 'com.google.gms.google-services' android/app/build.gradle || \
+            printf '\napply plugin: "com.google.gms.google-services"\n' >> android/app/build.gradle
+          fi
+
+          if [ -f android/build.gradle.kts ]; then
+            grep -q 'com.google.gms:google-services' android/build.gradle.kts || \
+            sed -i '/dependencies {/a\        classpath("com.google.gms:google-services:4.4.2")' android/build.gradle.kts
+          fi
+
+          if [ -f android/app/build.gradle.kts ]; then
+            grep -q 'com.google.gms.google-services' android/app/build.gradle.kts || \
+            sed -i '0,/plugins {/s//plugins {\n    id("com.google.gms.google-services")/' android/app/build.gradle.kts
+          fi
+
       - name: Force supported Gradle wrapper version
         run: |
           mkdir -p android/gradle/wrapper
@@ -68,9 +93,14 @@ jobs:
       - name: Build release APK
         run: flutter build apk --release
 
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
+      - name: Set release tag
+        run: echo "RELEASE_TAG=apk-${GITHUB_REF_NAME//\//-}-${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
+
+      - name: Upload APK to GitHub Releases
+        uses: softprops/action-gh-release@v2
         with:
-          name: cureconnect-release-apk
-          path: flutter_app/build/app/outputs/flutter-apk/app-release.apk
-          if-no-files-found: error
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: CureConnect APK ${{ env.RELEASE_TAG }}
+          generate_release_notes: true
+          prerelease: true
+          files: flutter_app/build/app/outputs/flutter-apk/app-release.apk
