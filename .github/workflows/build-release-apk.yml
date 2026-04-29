@@ -53,7 +53,7 @@ jobs:
           plugin_id = "com.google.gms.google-services"
           plugin_version = "4.4.4"
 
-          def insert_after_plugins_block(text: str, line_to_add: str) -> str:
+          def insert_after_plugins_block(text, line_to_add):
               if line_to_add in text:
                   return text
               marker = "plugins {"
@@ -63,43 +63,53 @@ jobs:
               insert_at = text.find("\n", index)
               return text[: insert_at + 1] + f"    {line_to_add}\n" + text[insert_at + 1 :]
 
-          def patch_settings(path: Path, is_kts: bool) -> None:
+          def patch_settings(path, is_kts):
               if not path.exists():
                   return
-              text = path.read_text()
+              text = path.read_text(encoding="utf-8")
               line = (
                   f'id("{plugin_id}") version "{plugin_version}" apply false'
                   if is_kts
                   else f"id '{plugin_id}' version '{plugin_version}' apply false"
               )
               updated = insert_after_plugins_block(text, line)
-              path.write_text(updated)
+              path.write_text(updated, encoding="utf-8")
 
-          def patch_app(path: Path, is_kts: bool) -> None:
+          def patch_app(path, is_kts):
               if not path.exists():
                   return
-              text = path.read_text()
+              text = path.read_text(encoding="utf-8")
               line = f'id("{plugin_id}")' if is_kts else f"id '{plugin_id}'"
               updated = insert_after_plugins_block(text, line)
               package_name = read_package_name()
               if package_name:
                   updated = sync_android_package(updated, package_name)
-              path.write_text(updated)
+              path.write_text(updated, encoding="utf-8")
 
-          def read_package_name() -> str | None:
+          def read_package_name():
               json_path = Path("android/app/google-services.json")
               if not json_path.exists():
                   return None
 
-              payload = json.loads(json_path.read_text())
-              clients = payload.get("client", [])
+              try:
+                  payload = json.loads(json_path.read_text(encoding="utf-8"))
+              except (OSError, json.JSONDecodeError) as error:
+                  print(f"Skipping package sync: unable to parse google-services.json ({error})")
+                  return None
+
+              clients = payload.get("client") or []
               if not clients:
                   return None
 
-              android_info = clients[0].get("client_info", {}).get("android_client_info", {})
-              return android_info.get("package_name")
+              for client in clients:
+                  android_info = client.get("client_info", {}).get("android_client_info", {})
+                  package_name = android_info.get("package_name")
+                  if package_name:
+                      return package_name
 
-          def sync_android_package(text: str, package_name: str) -> str:
+              return None
+
+          def sync_android_package(text, package_name):
               patterns = [
                   (r'namespace\s*=\s*"[^"]+"', f'namespace = "{package_name}"'),
                   (r"namespace\s+'[^']+'", f"namespace '{package_name}'"),
@@ -112,6 +122,12 @@ jobs:
               for pattern, replacement in patterns:
                   updated = re.sub(pattern, replacement, updated)
               return updated
+
+          package_name = read_package_name()
+          if package_name:
+              print(f"Syncing Android package to {package_name}")
+          else:
+              print("No Android package found in google-services.json; leaving package names unchanged")
 
           patch_settings(Path("android/settings.gradle"), is_kts=False)
           patch_settings(Path("android/settings.gradle.kts"), is_kts=True)
