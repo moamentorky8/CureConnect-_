@@ -46,6 +46,8 @@ jobs:
       - name: Patch Gradle for Google services
         run: |
           python3 <<'PY'
+          import json
+          import re
           from pathlib import Path
 
           plugin_id = "com.google.gms.google-services"
@@ -79,7 +81,37 @@ jobs:
               text = path.read_text()
               line = f'id("{plugin_id}")' if is_kts else f"id '{plugin_id}'"
               updated = insert_after_plugins_block(text, line)
+              package_name = read_package_name()
+              if package_name:
+                  updated = sync_android_package(updated, package_name)
               path.write_text(updated)
+
+          def read_package_name() -> str | None:
+              json_path = Path("android/app/google-services.json")
+              if not json_path.exists():
+                  return None
+
+              payload = json.loads(json_path.read_text())
+              clients = payload.get("client", [])
+              if not clients:
+                  return None
+
+              android_info = clients[0].get("client_info", {}).get("android_client_info", {})
+              return android_info.get("package_name")
+
+          def sync_android_package(text: str, package_name: str) -> str:
+              patterns = [
+                  (r'namespace\s*=\s*"[^"]+"', f'namespace = "{package_name}"'),
+                  (r"namespace\s+'[^']+'", f"namespace '{package_name}'"),
+                  (r'applicationId\s*=\s*"[^"]+"', f'applicationId = "{package_name}"'),
+                  (r'applicationId\s+"[^"]+"', f'applicationId "{package_name}"'),
+                  (r"applicationId\s+'[^']+'", f"applicationId '{package_name}'"),
+              ]
+
+              updated = text
+              for pattern, replacement in patterns:
+                  updated = re.sub(pattern, replacement, updated)
+              return updated
 
           patch_settings(Path("android/settings.gradle"), is_kts=False)
           patch_settings(Path("android/settings.gradle.kts"), is_kts=True)
