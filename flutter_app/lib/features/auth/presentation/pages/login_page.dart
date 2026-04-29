@@ -27,17 +27,14 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     super.dispose();
   }
 
-  Future<void> _submit() async {
+  Future<void> _runAction(Future<void> Function() action) async {
     setState(() {
       _loading = true;
       _error = null;
     });
 
     try {
-      await ref.read(repositoryProvider).signIn(
-            email: _emailController.text.trim(),
-            password: _passwordController.text.trim(),
-          );
+      await action();
     } catch (error) {
       setState(() => _error = error.toString());
     } finally {
@@ -45,6 +42,21 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         setState(() => _loading = false);
       }
     }
+  }
+
+  Future<void> _submit() {
+    return _runAction(() async {
+      await ref.read(repositoryProvider).signIn(
+            email: _emailController.text.trim(),
+            password: _passwordController.text.trim(),
+          );
+    });
+  }
+
+  Future<void> _signInWithGoogle() {
+    return _runAction(() async {
+      await ref.read(repositoryProvider).signInWithGoogle();
+    });
   }
 
   @override
@@ -70,7 +82,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      'Sign in to manage schedules, monitor dose delivery, and remotely trigger drawers.',
+                      'Sign in to manage schedules, sync with Firebase, and trigger emergency voice alerts in seconds.',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             color: Colors.white70,
                           ),
@@ -97,12 +109,26 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton(
-                        style: FilledButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 18),
-                          backgroundColor: AppColors.medicalBlue,
-                        ),
                         onPressed: _loading ? null : _submit,
                         child: Text(_loading ? 'Signing in...' : 'Enter Control Center'),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: AppColors.cardBorder),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          foregroundColor: AppColors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          backgroundColor: Colors.white.withOpacity(0.04),
+                        ),
+                        onPressed: _loading ? null : _signInWithGoogle,
+                        icon: const Icon(Icons.account_circle_outlined),
+                        label: const Text('Continue with Google'),
                       ),
                     ),
                   ],
