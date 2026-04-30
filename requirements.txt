@@ -1,0 +1,13 @@
+# الأساسيات لتشغيل السيرفر على فايربيز
+firebase-functions>=0.1.0
+firebase-admin>=6.0.0
+flask>=2.0.0
+
+# للمكالمات الخارجية (مثل ElevenLabs API)
+requests>=2.28.0
+
+# للتعامل مع المتغيرات البيئية (اختياري ولكن مفضل للأمان)
+python-dotenv>=1.0.0
+
+# خادم الويب للإنتاج (Production server)
+gunicorn>=20.1.0
