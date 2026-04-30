@@ -5,3 +5,6 @@
 /app/cureconnect-release.jks
 /app/release.jks
 /key.properties
+cureconnect-release.jks
+google-services.json
+*.jks
