@@ -29,6 +29,16 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Generate local.properties
+        working-directory: flutter_app/android
+        run: |
+          echo "flutter.sdk=$FLUTTER_ROOT" > local.properties
+          echo "sdk.dir=$ANDROID_SDK_ROOT" >> local.properties
+          echo "flutter.versionCode=2" >> local.properties
+          echo "flutter.versionName=1.1.0" >> local.properties
+          echo "✅ local.properties:"
+          cat local.properties
+
       - name: Create google-services.json
         working-directory: flutter_app/android/app
         env:
@@ -38,32 +48,7 @@ jobs:
             echo "$GOOGLE_SERVICES_JSON" > google-services.json
             echo "✅ google-services.json written from secret"
           else
-            echo "⚠️ GOOGLE_SERVICES_JSON secret not set — using placeholder google-services.json"
-            cat > google-services.json << 'EOF'
-          {
-            "project_info": {
-              "project_number": "000000000000",
-              "project_id": "cureconnect-placeholder",
-              "storage_bucket": "cureconnect-placeholder.appspot.com"
-            },
-            "client": [
-              {
-                "client_info": {
-                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000",
-                  "android_client_info": {
-                    "package_name": "com.cureconnect.app"
-                  }
-                },
-                "oauth_client": [],
-                "api_key": [{ "current_key": "placeholder" }],
-                "services": {
-                  "appinvite_service": { "other_platform_oauth_client": [] }
-                }
-              }
-            ],
-            "configuration_version": "1"
-          }
-          EOF
+            echo "⚠️  No GOOGLE_SERVICES_JSON secret — using placeholder"
           fi
 
       - name: Get Flutter dependencies
@@ -75,9 +60,9 @@ jobs:
         run: flutter analyze --no-fatal-infos
         continue-on-error: true
 
-      - name: Build debug APK (no signing required)
+      - name: Build debug APK
         working-directory: flutter_app
-        run: flutter build apk --debug
+        run: flutter build apk --debug --verbose
 
       - name: Build release APK
         working-directory: flutter_app
@@ -89,18 +74,23 @@ jobs:
         run: |
           if [ -n "$KEYSTORE_BASE64" ]; then
             echo "$KEYSTORE_BASE64" | base64 --decode > android/app/release.jks
-            cat > android/key.properties << EOF
+            cat > android/key.properties << KEYEOF
           storePassword=$STORE_PASSWORD
           keyPassword=$KEY_PASSWORD
           keyAlias=$KEY_ALIAS
           storeFile=release.jks
-          EOF
-            echo "✅ Signing keystore configured"
+          KEYEOF
+            echo "✅ Signed release build"
             flutter build apk --release
           else
-            echo "⚠️ No keystore secret — building unsigned release APK"
-            flutter build apk --release --no-shrink
+            echo "⚠️  No keystore — unsigned release build"
+            flutter build apk --release
           fi
+
+      - name: List APK outputs
+        run: |
+          echo "=== APK files ==="
+          find flutter_app/build/app/outputs/flutter-apk/ -name "*.apk" 2>/dev/null || echo "No APKs found"
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
