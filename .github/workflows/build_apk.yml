@@ -7,6 +7,9 @@ on:
     branches: [main, master]
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build:
     name: Build APK
@@ -32,18 +35,17 @@ jobs:
       - name: Print Flutter version
         run: flutter --version
 
-      # MUST run before Gradle — settings.gradle reads this at config phase
-      # Using printf to avoid heredoc indentation issues
+      # Must run before Gradle — settings.gradle reads local.properties at config phase
       - name: Write local.properties
         run: |
-          printf "flutter.sdk=%s\n" "$FLUTTER_ROOT"         > flutter_app/android/local.properties
-          printf "sdk.dir=%s\n"    "$ANDROID_SDK_ROOT"     >> flutter_app/android/local.properties
+          printf "flutter.sdk=%s\n"    "$FLUTTER_ROOT"      > flutter_app/android/local.properties
+          printf "sdk.dir=%s\n"        "$ANDROID_SDK_ROOT" >> flutter_app/android/local.properties
           printf "flutter.versionCode=2\n"                  >> flutter_app/android/local.properties
           printf "flutter.versionName=1.1.0\n"              >> flutter_app/android/local.properties
           echo "=== local.properties ==="
           cat flutter_app/android/local.properties
 
-      - name: Install NDK and Android SDK components
+      - name: Install NDK and SDK components
         run: |
           SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
           yes | $SDKMANAGER --licenses > /dev/null 2>&1 || true
@@ -78,23 +80,6 @@ jobs:
             --dart-define=ELEVENLABS_VOICE_ID=placeholder \
             --dart-define=ELEVENLABS_MODEL_ID=eleven_multilingual_v2
 
-      - name: Setup release signing
-        working-directory: flutter_app/android
-        env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-          KEY_ALIAS:       ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD:    ${{ secrets.KEY_PASSWORD }}
-          STORE_PASSWORD:  ${{ secrets.STORE_PASSWORD }}
-        run: |
-          if [ -n "$KEYSTORE_BASE64" ]; then
-            echo "$KEYSTORE_BASE64" | base64 --decode > app/release.jks
-            printf "storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=release.jks\n" \
-              "$STORE_PASSWORD" "$KEY_PASSWORD" "$KEY_ALIAS" > key.properties
-            echo "Keystore configured for signed release"
-          else
-            echo "No keystore — release APK will use debug signing"
-          fi
-
       - name: Build release APK
         working-directory: flutter_app
         run: |
@@ -103,10 +88,10 @@ jobs:
             --dart-define=ELEVENLABS_VOICE_ID=placeholder \
             --dart-define=ELEVENLABS_MODEL_ID=eleven_multilingual_v2
 
-      - name: Show APK sizes
+      - name: List APK outputs
         run: |
-          find flutter_app/build/app/outputs/flutter-apk/ -name "*.apk" \
-            -exec ls -lh {} \; 2>/dev/null || echo "No APKs found"
+          find flutter_app/build/app/outputs/ -name "*.apk" -exec ls -lh {} \; 2>/dev/null \
+            || echo "No APKs found — check build logs above"
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4

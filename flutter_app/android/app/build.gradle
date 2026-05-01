@@ -5,12 +5,6 @@ plugins {
     id "com.google.gms.google-services"
 }
 
-def keystorePropertiesFile = rootProject.file("key.properties")
-def keystoreProperties = new Properties()
-if (keystorePropertiesFile.exists()) {
-    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
-}
-
 android {
     namespace "com.cureconnect.app"
     compileSdk 35
@@ -34,27 +28,10 @@ android {
         multiDexEnabled true
     }
 
-    signingConfigs {
-        release {
-            if (keystorePropertiesFile.exists()) {
-                storeFile     file(keystoreProperties["storeFile"])
-                storePassword keystoreProperties["storePassword"]
-                keyAlias      keystoreProperties["keyAlias"]
-                keyPassword   keystoreProperties["keyPassword"]
-            }
-        }
-    }
-
     buildTypes {
-        debug {
-            // No signingConfig here — AGP + Flutter handle debug signing automatically
-            debuggable true
-        }
         release {
-            // Use release keystore if available, otherwise fall back to AGP default debug key
-            signingConfig keystorePropertiesFile.exists()
-                ? signingConfigs.release
-                : signingConfigs.debug
+            // Standard Flutter template: use debug signing unless a keystore is configured
+            signingConfig signingConfigs.debug
             minifyEnabled false
             shrinkResources false
         }
