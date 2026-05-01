@@ -29,27 +29,25 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Print Flutter & Dart versions
+      - name: Print Flutter version
         run: flutter --version
 
-      # CRITICAL: must run before any Gradle step because settings.gradle reads this file
+      # MUST run before Gradle — settings.gradle reads this at config phase
+      # Using printf to avoid heredoc indentation issues
       - name: Write local.properties
         run: |
-          cat > flutter_app/android/local.properties << PROPS
-          flutter.sdk=$FLUTTER_ROOT
-          sdk.dir=$ANDROID_SDK_ROOT
-          flutter.versionCode=2
-          flutter.versionName=1.1.0
-          PROPS
+          printf "flutter.sdk=%s\n" "$FLUTTER_ROOT"         > flutter_app/android/local.properties
+          printf "sdk.dir=%s\n"    "$ANDROID_SDK_ROOT"     >> flutter_app/android/local.properties
+          printf "flutter.versionCode=2\n"                  >> flutter_app/android/local.properties
+          printf "flutter.versionName=1.1.0\n"              >> flutter_app/android/local.properties
           echo "=== local.properties ==="
           cat flutter_app/android/local.properties
 
-      - name: Install Android NDK 27
+      - name: Install NDK and Android SDK components
         run: |
-          echo "y" | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager \
-            "ndk;27.0.12077973" \
-            "build-tools;35.0.0" \
-            "platforms;android-35" 2>&1 | tail -5
+          SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          yes | $SDKMANAGER --licenses > /dev/null 2>&1 || true
+          $SDKMANAGER "ndk;27.0.12077973" "build-tools;35.0.0" "platforms;android-35"
 
       - name: Write google-services.json
         working-directory: flutter_app/android/app
@@ -58,16 +56,16 @@ jobs:
         run: |
           if [ -n "$GOOGLE_SERVICES_JSON" ]; then
             echo "$GOOGLE_SERVICES_JSON" > google-services.json
-            echo "✅ google-services.json from secret"
+            echo "Used real google-services.json from secret"
           else
-            echo "⚠️  No GOOGLE_SERVICES_JSON secret — using placeholder"
+            echo "Using placeholder google-services.json"
           fi
 
       - name: Flutter pub get
         working-directory: flutter_app
         run: flutter pub get
 
-      - name: Flutter analyze (non-fatal)
+      - name: Flutter analyze
         working-directory: flutter_app
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
         continue-on-error: true
@@ -80,8 +78,8 @@ jobs:
             --dart-define=ELEVENLABS_VOICE_ID=placeholder \
             --dart-define=ELEVENLABS_MODEL_ID=eleven_multilingual_v2
 
-      - name: Setup signing (if secrets present)
-        working-directory: flutter_app
+      - name: Setup release signing
+        working-directory: flutter_app/android
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
           KEY_ALIAS:       ${{ secrets.KEY_ALIAS }}
@@ -89,16 +87,12 @@ jobs:
           STORE_PASSWORD:  ${{ secrets.STORE_PASSWORD }}
         run: |
           if [ -n "$KEYSTORE_BASE64" ]; then
-            echo "$KEYSTORE_BASE64" | base64 --decode > android/app/release.jks
-            cat > android/key.properties << KPROPS
-          storePassword=$STORE_PASSWORD
-          keyPassword=$KEY_PASSWORD
-          keyAlias=$KEY_ALIAS
-          storeFile=release.jks
-          KPROPS
-            echo "✅ Keystore configured"
+            echo "$KEYSTORE_BASE64" | base64 --decode > app/release.jks
+            printf "storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=release.jks\n" \
+              "$STORE_PASSWORD" "$KEY_PASSWORD" "$KEY_ALIAS" > key.properties
+            echo "Keystore configured for signed release"
           else
-            echo "⚠️  No keystore secret — release will use debug signing"
+            echo "No keystore — release APK will use debug signing"
           fi
 
       - name: Build release APK
@@ -109,10 +103,10 @@ jobs:
             --dart-define=ELEVENLABS_VOICE_ID=placeholder \
             --dart-define=ELEVENLABS_MODEL_ID=eleven_multilingual_v2
 
-      - name: List APK outputs
+      - name: Show APK sizes
         run: |
-          echo "=== Built APKs ==="
-          find flutter_app/build/app/outputs/flutter-apk/ -name "*.apk" -exec ls -lh {} \;
+          find flutter_app/build/app/outputs/flutter-apk/ -name "*.apk" \
+            -exec ls -lh {} \; 2>/dev/null || echo "No APKs found"
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
