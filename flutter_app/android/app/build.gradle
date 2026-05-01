@@ -35,34 +35,26 @@ android {
     }
 
     signingConfigs {
-        debug {
-            storeFile file("${System.properties['user.home']}/.android/debug.keystore")
-            storePassword "android"
-            keyAlias "androiddebugkey"
-            keyPassword "android"
-        }
         release {
             if (keystorePropertiesFile.exists()) {
-                storeFile file(keystoreProperties["storeFile"])
+                storeFile     file(keystoreProperties["storeFile"])
                 storePassword keystoreProperties["storePassword"]
-                keyAlias keystoreProperties["keyAlias"]
-                keyPassword keystoreProperties["keyPassword"]
-            } else {
-                // Fall back to debug signing for unsigned release builds
-                storeFile file("${System.properties['user.home']}/.android/debug.keystore")
-                storePassword "android"
-                keyAlias "androiddebugkey"
-                keyPassword "android"
+                keyAlias      keystoreProperties["keyAlias"]
+                keyPassword   keystoreProperties["keyPassword"]
             }
         }
     }
 
     buildTypes {
         debug {
-            signingConfig signingConfigs.debug
+            // No signingConfig here — AGP + Flutter handle debug signing automatically
+            debuggable true
         }
         release {
-            signingConfig signingConfigs.release
+            // Use release keystore if available, otherwise fall back to AGP default debug key
+            signingConfig keystorePropertiesFile.exists()
+                ? signingConfigs.release
+                : signingConfigs.debug
             minifyEnabled false
             shrinkResources false
         }
