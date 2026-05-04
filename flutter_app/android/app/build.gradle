@@ -49,9 +49,13 @@ android {
 
     buildTypes {
         release {
-            // Signing with the debug keys for now, so `flutter run --release` works.
+            // Default to debug signing
             signingConfig = signingConfigs.debug
-            if (keystorePropertiesFile.exists()) {
+            
+            // Only use release signing if the keystore file and properties exist
+            if (keystorePropertiesFile.exists() && 
+                keystoreProperties['storeFile'] != null && 
+                file(keystoreProperties['storeFile']).exists()) {
                 signingConfig = signingConfigs.release
             }
 
